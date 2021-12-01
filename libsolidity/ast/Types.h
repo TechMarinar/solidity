@@ -377,6 +377,8 @@ public:
 	/// Clears all internally cached values (if any).
 	virtual void clearCache() const;
 
+	util::Result<FunctionDefinition const*> operatorDefinition(Token _token, ASTNode const& _scope, bool _unaryOperation) const;
+
 private:
 	/// @returns a member list containing all members added to this type by `using for` directives.
 	static MemberList::MemberMap boundFunctions(Type const& _type, ASTNode const& _scope);
