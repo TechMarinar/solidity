@@ -74,6 +74,10 @@ public:
 	/// @returns SMT solvers that are available via the C++ API.
 	static smtutil::SMTSolverChoice availableSolvers();
 
+	/// @returns the intersection of the enabled and available solvers,
+	/// reporting warnings when a solver is enabled but not available.
+	static smtutil::SMTSolverChoice checkRequestedSolvers(smtutil::SMTSolverChoice _enabled, langutil::ErrorReporter& _errorReporter);
+
 private:
 	/// Error reporter from CompilerStack.
 	/// We need to append m_uniqueErrorReporter

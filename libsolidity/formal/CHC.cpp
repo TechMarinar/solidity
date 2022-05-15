@@ -18,6 +18,8 @@
 
 #include <libsolidity/formal/CHC.h>
 
+#include <libsolidity/formal/ModelChecker.h>
+
 #ifdef HAVE_Z3
 #include <libsmtutil/Z3CHCInterface.h>
 #endif
@@ -62,7 +64,7 @@ CHC::CHC(
 	UniqueErrorReporter& _errorReporter,
 	map<util::h256, string> const& _smtlib2Responses,
 	ReadCallback::Callback const& _smtCallback,
-	ModelCheckerSettings const& _settings,
+	ModelCheckerSettings _settings,
 	CharStreamProvider const& _charStreamProvider
 ):
 	SMTEncoder(_context, _settings, _errorReporter, _charStreamProvider),
@@ -73,31 +75,20 @@ CHC::CHC(
 
 void CHC::analyze(SourceUnit const& _source)
 {
-	if (!shouldAnalyze(_source))
-		return;
-
-	bool usesZ3 = m_settings.solvers.z3;
-#ifdef HAVE_Z3_DLOPEN
-	if (m_settings.solvers.z3 && !Z3Interface::available())
-	{
-		usesZ3 = false;
-		m_errorReporter.warning(
-			8158_error,
-			SourceLocation(),
-			"z3 was selected as a Horn solver for CHC analysis but libz3.so." + to_string(Z3_MAJOR_VERSION) + "." + to_string(Z3_MINOR_VERSION) + " was not found."
-		);
-	}
-#endif
-
-	if (!usesZ3 && !m_settings.solvers.smtlib2)
+	/// At this point every enabled solver is available.
+	if (!m_settings.solvers.eld && !m_settings.solvers.smtlib2 && !m_settings.solvers.z3)
 	{
 		m_errorReporter.warning(
 			7649_error,
 			SourceLocation(),
 			"CHC analysis was not possible since no Horn solver was found and enabled."
+			" The accepted solvers for CHC are Eldarica and z3."
 		);
 		return;
 	}
+
+	if (!shouldAnalyze(_source))
+		return;
 
 	resetSourceAnalysis();
 
@@ -115,7 +106,8 @@ void CHC::analyze(SourceUnit const& _source)
 
 	bool ranSolver = true;
 	// If ranSolver is true here it's because an SMT solver callback was
-	// actually given and the queries were solved.
+	// actually given and the queries were solved,
+	// or Eldarica was chosen and was present in the system.
 	if (auto const* smtLibInterface = dynamic_cast<CHCSmtLib2Interface const*>(m_interface.get()))
 		ranSolver = smtLibInterface->unhandledQueries().empty();
 	if (!ranSolver)
@@ -994,10 +986,11 @@ void CHC::resetSourceAnalysis()
 	ArraySlicePredicate::reset();
 	m_blockCounter = 0;
 
-	bool usesZ3 = false;
+	/// At this point every enabled solver is available.
+	/// If more than one Horn solver is selected we go with z3.
+	/// We still need the ifdef because of Z3CHCInterface.
 #ifdef HAVE_Z3
-	usesZ3 = m_settings.solvers.z3 && Z3Interface::available();
-	if (usesZ3)
+	if (m_settings.solvers.z3)
 	{
 		/// z3::fixedpoint does not have a reset mechanism, so we need to create another.
 		m_interface = std::make_unique<Z3CHCInterface>(m_settings.timeout);
@@ -1006,12 +999,12 @@ void CHC::resetSourceAnalysis()
 		m_context.setSolver(z3Interface->z3Interface());
 	}
 #endif
-	if (!usesZ3)
+	if (!m_settings.solvers.z3)
 	{
-		solAssert(m_settings.solvers.smtlib2);
+		solAssert(m_settings.solvers.smtlib2 || m_settings.solvers.eld);
 
 		if (!m_interface)
-			m_interface = make_unique<CHCSmtLib2Interface>(m_smtlib2Responses, m_smtCallback, m_settings.timeout);
+			m_interface = make_unique<CHCSmtLib2Interface>(m_smtlib2Responses, m_smtCallback, m_settings.solvers, m_settings.timeout);
 
 		auto smtlib2Interface = dynamic_cast<CHCSmtLib2Interface*>(m_interface.get());
 		solAssert(smtlib2Interface, "");
@@ -1551,6 +1544,7 @@ tuple<CheckResult, smtutil::Expression, CHCSolverInterface::CexGraph> CHC::query
 	{
 	case CheckResult::SATISFIABLE:
 	{
+	/// We still need the ifdef because of Z3CHCInterface.
 #ifdef HAVE_Z3
 		if (m_settings.solvers.z3)
 		{
