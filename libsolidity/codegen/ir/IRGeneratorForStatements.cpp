@@ -672,6 +672,48 @@ void IRGeneratorForStatements::endVisit(Return const& _return)
 bool IRGeneratorForStatements::visit(UnaryOperation const& _unaryOperation)
 {
 	setLocation(_unaryOperation);
+
+	if (_unaryOperation.annotation().userDefinedFunction.set())
+	{
+		_unaryOperation.subExpression().accept(*this);
+		setLocation(_unaryOperation);
+
+		FunctionDefinition const* function = *_unaryOperation.annotation().userDefinedFunction;
+		solAssert(function);
+		solAssert(
+			function->isFree() || function->libraryFunction(),
+			"Only file-level functions and library functions can be bound to a user type operator."
+		);
+
+		FunctionType const* functionType = _unaryOperation.userDefinedFunctionType();
+		solAssert(functionType);
+		functionType = dynamic_cast<FunctionType const&>(*functionType).asBoundFunction();
+		solAssert(functionType);
+		solAssert(
+			functionType->parameterTypes().size() == 0,
+			"Functions with parameters other than self parameter cannot be bound to a user type unary operator."
+		);
+
+		string argument = expressionAsType(_unaryOperation.subExpression(), *functionType->selfType());
+		solAssert(!argument.empty());
+		solAssert(function->isImplemented());
+
+		solAssert(
+			function->returnParameters().size() == 1,
+			"A function bound to the user type operator is supposed to return exactly one value."
+		);
+		solAssert(
+			*_unaryOperation.annotation().type == *function->returnParameters().at(0)->type(),
+			"A return type of the bound function is supposed to be same as a operator type."
+		);
+
+		define(_unaryOperation) <<
+			m_context.enqueueFunctionForCodeGeneration(*function) <<
+			("(" + argument + ")\n");
+
+		return false;
+	}
+
 	Type const& resultType = type(_unaryOperation);
 	Token const op = _unaryOperation.getOperator();
 
@@ -775,9 +817,53 @@ bool IRGeneratorForStatements::visit(BinaryOperation const& _binOp)
 {
 	setLocation(_binOp);
 
+	if (_binOp.annotation().userDefinedFunction.set())
+	{
+		_binOp.leftExpression().accept(*this);
+		_binOp.rightExpression().accept(*this);
+		setLocation(_binOp);
+
+		FunctionDefinition const* function = *_binOp.annotation().userDefinedFunction;
+		solAssert(function);
+		solAssert(
+			function->isFree() || function->libraryFunction(),
+			"Only file-level functions and library functions can be bound to a user type operator."
+		);
+
+		FunctionType const* functionType = _binOp.userDefinedFunctionType();
+		solAssert(functionType);
+		functionType = dynamic_cast<FunctionType const&>(*functionType).asBoundFunction();
+		solAssert(functionType);
+		solAssert(
+			functionType->parameterTypes().size() == 1,
+			"Only functions with one parameter other than self parameter can be bound to a user type binary operator."
+		);
+
+		string left = expressionAsType(_binOp.leftExpression(), *functionType->selfType());
+		string right = expressionAsType(_binOp.rightExpression(), *functionType->parameterTypes().at(0));
+		solAssert(!left.empty() && !right.empty());
+
+		solAssert(function->isImplemented());
+
+		solAssert(
+			function->returnParameters().size() == 1,
+			"A function bound to the user type operator is supposed to return exactly one value."
+		);
+		solAssert(*_binOp.annotation().type == *function->returnParameters().at(0)->type(),
+			"A return type of the bound function is supposed to be same as a operator type."
+		);
+
+		define(_binOp) <<
+			m_context.enqueueFunctionForCodeGeneration(*function) <<
+			("(" + left + ", " + right + ")\n");
+
+		return false;
+	}
+
 	solAssert(!!_binOp.annotation().commonType);
 	Type const* commonType = _binOp.annotation().commonType;
 	langutil::Token op = _binOp.getOperator();
+
 
 	if (op == Token::And || op == Token::Or)
 	{

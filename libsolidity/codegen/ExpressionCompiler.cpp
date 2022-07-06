@@ -410,6 +410,42 @@ bool ExpressionCompiler::visit(TupleExpression const& _tuple)
 bool ExpressionCompiler::visit(UnaryOperation const& _unaryOperation)
 {
 	CompilerContext::LocationSetter locationSetter(m_context, _unaryOperation);
+
+	if (_unaryOperation.annotation().userDefinedFunction.set())
+	{
+		FunctionDefinition const* function = *_unaryOperation.annotation().userDefinedFunction;
+		solAssert(function);
+		solAssert(
+			function->isFree() || function->libraryFunction(),
+			"Only file-level functions and library functions can be bound to a user type operator."
+		);
+
+		FunctionType const* functionType = _unaryOperation.userDefinedFunctionType();
+		solAssert(functionType);
+
+		functionType = dynamic_cast<FunctionType const&>(*functionType).asBoundFunction();
+		solAssert(functionType);
+		evmasm::AssemblyItem returnLabel = m_context.pushNewTag();
+		acceptAndConvert(_unaryOperation.subExpression(), *functionType->selfType());
+
+		m_context << m_context.functionEntryLabel(*function).pushTag();
+		m_context.appendJump(evmasm::AssemblyItem::JumpType::IntoFunction);
+		m_context << returnLabel;
+
+		solAssert(
+			functionType->parameterTypes().size() == 0,
+			"Functions with parameters other than self parameter cannot be bound to a user type unary operator."
+		);
+
+		unsigned parameterSize = functionType->selfType()->sizeOnStack();
+		unsigned returnParametersSize = CompilerUtils::sizeOnStack(functionType->returnParameterTypes());
+
+		// callee adds return parameters, but removes arguments and return label
+		m_context.adjustStackOffset(static_cast<int>(returnParametersSize - parameterSize) - 1);
+
+		return false;
+	}
+
 	Type const& type = *_unaryOperation.annotation().type;
 	if (type.category() == Type::Category::RationalNumber)
 	{
@@ -502,7 +538,42 @@ bool ExpressionCompiler::visit(BinaryOperation const& _binaryOperation)
 	CompilerContext::LocationSetter locationSetter(m_context, _binaryOperation);
 	Expression const& leftExpression = _binaryOperation.leftExpression();
 	Expression const& rightExpression = _binaryOperation.rightExpression();
-	solAssert(!!_binaryOperation.annotation().commonType, "");
+	if (_binaryOperation.annotation().userDefinedFunction.set())
+	{
+		FunctionDefinition const* function = *_binaryOperation.annotation().userDefinedFunction;
+		solAssert(function);
+		solAssert(
+			function->isFree() || function->libraryFunction(),
+			"Only file-level functions and library functions can be bound to a user type operator."
+		);
+		FunctionType const* functionType = _binaryOperation.userDefinedFunctionType();
+		solAssert(functionType);
+		functionType = dynamic_cast<FunctionType const&>(*functionType).asBoundFunction();
+		solAssert(functionType);
+
+		solAssert(
+			functionType->parameterTypes().size() == 1,
+			"Only functions with one parameter other than self parameter can be bound to a user type binary operator."
+		);
+		evmasm::AssemblyItem returnLabel = m_context.pushNewTag();
+		acceptAndConvert(leftExpression, *functionType->selfType());
+		acceptAndConvert(rightExpression, *functionType->parameterTypes().at(0));
+
+		m_context << m_context.functionEntryLabel(*function).pushTag();
+		m_context.appendJump(evmasm::AssemblyItem::JumpType::IntoFunction);
+		m_context << returnLabel;
+
+		unsigned parameterSize =
+			CompilerUtils::sizeOnStack(functionType->parameterTypes()) +
+			functionType->selfType()->sizeOnStack();
+
+		unsigned returnParametersSize = CompilerUtils::sizeOnStack(functionType->returnParameterTypes());
+		// callee adds return parameters, but removes arguments and return label
+		m_context.adjustStackOffset(static_cast<int>(returnParametersSize - parameterSize) - 1);
+		return false;
+	}
+
+	solAssert(!!_binaryOperation.annotation().commonType);
 	Type const* commonType = _binaryOperation.annotation().commonType;
 	Token const c_op = _binaryOperation.getOperator();
 
