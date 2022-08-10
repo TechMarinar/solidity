@@ -16,7 +16,7 @@ at contract level.
 
 The first part, ``A``, can be one of:
 
-- a list of file-level or library functions (``using {f, g, h, L.t} for uint;``) -
+- a list of file-level or internal library functions (``using {f, g, h, L.t} for uint;``) -
   only those functions will be bound to the type as member functions,
 - the name of a library (``using L for uint;``) -
   all functions (both public and internal ones) of the library are bound to the type
