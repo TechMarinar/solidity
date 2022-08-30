@@ -2952,7 +2952,7 @@ FunctionTypePointer FunctionType::newExpressionType(ContractDefinition const& _c
 
 vector<string> FunctionType::parameterNames() const
 {
-	if (!bound())
+	if (!boundToType())
 		return m_parameterNames;
 	return vector<string>(m_parameterNames.cbegin() + 1, m_parameterNames.cend());
 }
@@ -2981,7 +2981,7 @@ TypePointers FunctionType::returnParameterTypesWithoutDynamicTypes() const
 
 TypePointers FunctionType::parameterTypes() const
 {
-	if (!bound())
+	if (!boundToType())
 		return m_parameterTypes;
 	return TypePointers(m_parameterTypes.cbegin() + 1, m_parameterTypes.cend());
 }
@@ -3046,7 +3046,7 @@ string FunctionType::richIdentifier() const
 		id += "value";
 	if (saltSet())
 		id += "salt";
-	if (bound())
+	if (boundToType())
 		id += "bound_to" + identifierList(selfType());
 	return id;
 }
@@ -3081,7 +3081,7 @@ BoolResult FunctionType::isImplicitlyConvertibleTo(Type const& _convertTo) const
 	FunctionType const& convertTo = dynamic_cast<FunctionType const&>(_convertTo);
 
 	// These two checks are duplicated in equalExcludingStateMutability, but are added here for error reporting.
-	if (convertTo.bound() != bound())
+	if (convertTo.boundToType() != boundToType())
 		return BoolResult::err("Bound functions can not be converted to non-bound functions.");
 
 	if (convertTo.kind() != kind())
@@ -3122,10 +3122,10 @@ TypeResult FunctionType::binaryOperatorResult(Token _operator, Type const* _othe
 	else if (
 		kind() == Kind::External &&
 		sizeOnStack() == 2 &&
-		!bound() &&
+		!boundToType() &&
 		other.kind() == Kind::External &&
 		other.sizeOnStack() == 2 &&
-		!other.bound()
+		!other.boundToType()
 	)
 		return commonType(this, _other);
 
@@ -3210,7 +3210,7 @@ bool FunctionType::nameable() const
 {
 	return
 		(m_kind == Kind::Internal || m_kind == Kind::External) &&
-		!bound() &&
+		!boundToType() &&
 		!takesArbitraryParameters() &&
 		!gasSet() &&
 		!valueSet() &&
@@ -3249,7 +3249,7 @@ vector<tuple<string, Type const*>> FunctionType::makeStackItems() const
 		break;
 	case Kind::ArrayPush:
 	case Kind::ArrayPop:
-		solAssert(bound(), "");
+		solAssert(boundToType(), "");
 		slots = {};
 		break;
 	default:
@@ -3262,7 +3262,7 @@ vector<tuple<string, Type const*>> FunctionType::makeStackItems() const
 		slots.emplace_back("value", TypeProvider::uint256());
 	if (saltSet())
 		slots.emplace_back("salt", TypeProvider::fixedBytes(32));
-	if (bound())
+	if (boundToType())
 		slots.emplace_back("self", m_parameterTypes.front());
 	return slots;
 }
@@ -3423,7 +3423,7 @@ TypeResult FunctionType::interfaceType(bool /*_inLibrary*/) const
 
 Type const* FunctionType::mobileType() const
 {
-	if (valueSet() || gasSet() || saltSet() || bound())
+	if (valueSet() || gasSet() || saltSet() || boundToType())
 		return nullptr;
 
 	// return function without parameter names
@@ -3444,8 +3444,8 @@ bool FunctionType::canTakeArguments(
 	Type const* _selfType
 ) const
 {
-	solAssert(!bound() || _selfType, "");
-	if (bound() && !_selfType->isImplicitlyConvertibleTo(*selfType()))
+	solAssert(!boundToType() || _selfType, "");
+	if (boundToType() && !_selfType->isImplicitlyConvertibleTo(*selfType()))
 		return false;
 	TypePointers paramTypes = parameterTypes();
 	std::vector<std::string> const paramNames = parameterNames();
@@ -3524,10 +3524,10 @@ bool FunctionType::equalExcludingStateMutability(FunctionType const& _other) con
 	if (gasSet() != _other.gasSet() || valueSet() != _other.valueSet() || saltSet() != _other.saltSet())
 		return false;
 
-	if (bound() != _other.bound())
+	if (boundToType() != _other.boundToType())
 		return false;
 
-	solAssert(!bound() || *selfType() == *_other.selfType(), "");
+	solAssert(!boundToType() || *selfType() == *_other.selfType(), "");
 
 	return true;
 }
@@ -3655,7 +3655,7 @@ FunctionTypePointer FunctionType::asBoundFunction() const
 	solAssert(!valueSet(), "");
 	solAssert(!saltSet(), "");
 	Options options = Options::fromFunctionType(*this);
-	options.bound = true;
+	options.boundToType = true;
 	return TypeProvider::function(
 		m_parameterTypes,
 		m_returnParameterTypes,
@@ -3710,7 +3710,7 @@ FunctionTypePointer FunctionType::asExternallyCallableFunction(bool _inLibrary) 
 
 Type const* FunctionType::selfType() const
 {
-	solAssert(bound(), "Function is not bound.");
+	solAssert(boundToType(), "Function is not bound.");
 	solAssert(m_parameterTypes.size() > 0, "Function has no self type.");
 	return m_parameterTypes.at(0);
 }
