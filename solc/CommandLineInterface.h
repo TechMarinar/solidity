@@ -27,6 +27,8 @@
 #include <libsolidity/interface/CompilerStack.h>
 #include <libsolidity/interface/DebugSettings.h>
 #include <libsolidity/interface/FileReader.h>
+#include <libsolidity/interface/UniversalCallback.h>
+#include <libsolidity/interface/SMTSolverCommand.h>
 #include <libyul/YulStack.h>
 
 #include <iostream>
@@ -138,6 +140,8 @@ private:
 	std::ostream& m_serr;
 	bool m_hasOutput = false;
 	FileReader m_fileReader;
+	std::unique_ptr<SMTSolverCommand> m_solverCommand;
+	std::unique_ptr<UniversalCallback> m_universalCallback;
 	std::optional<std::string> m_standardJsonInput;
 	std::unique_ptr<frontend::CompilerStack> m_compiler;
 	CommandLineOptions m_options;

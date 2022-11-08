@@ -29,9 +29,9 @@ namespace solidity::frontend
 class UniversalCallback
 {
 public:
-	UniversalCallback(FileReader _fileReader, SMTSolverCommand _solver) :
-		m_fileReader{std::move(_fileReader)},
-		m_solver{std::move(_solver)}
+	UniversalCallback(FileReader&  _fileReader, SMTSolverCommand& _solver) :
+		m_fileReader{_fileReader},
+		m_solver{_solver}
 	{}
 
 	frontend::ReadCallback::Callback callback()
@@ -46,8 +46,8 @@ public:
 	}
 
 private:
-	FileReader m_fileReader;
-	SMTSolverCommand m_solver;
+	FileReader& m_fileReader;
+	SMTSolverCommand& m_solver;
 };
 
 }

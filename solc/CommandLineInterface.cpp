@@ -38,8 +38,6 @@
 #include <libsolidity/interface/DebugSettings.h>
 #include <libsolidity/interface/ImportRemapper.h>
 #include <libsolidity/interface/StorageLayout.h>
-#include <libsolidity/interface/UniversalCallback.h>
-#include <libsolidity/interface/SMTSolverCommand.h>
 #include <libsolidity/lsp/LanguageServer.h>
 #include <libsolidity/lsp/Transport.h>
 
@@ -695,9 +693,12 @@ void CommandLineInterface::compile()
 	solAssert(CompilerInputModes.count(m_options.input.mode) == 1);
 
 	auto modelCheckerSettings = m_options.modelChecker.settings;
-	auto universalCallback{UniversalCallback(m_fileReader, SMTSolverCommand("eld"))};
 	if (modelCheckerSettings.solvers.eld)
-		m_compiler = make_unique<CompilerStack>(universalCallback.callback());
+	{
+		m_solverCommand = make_unique<SMTSolverCommand>("eld");
+		m_universalCallback = make_unique<UniversalCallback>(m_fileReader, *m_solverCommand);
+		m_compiler = make_unique<CompilerStack>(m_universalCallback->callback());
+	}
 	else
 		m_compiler = make_unique<CompilerStack>(m_fileReader.reader());
 
