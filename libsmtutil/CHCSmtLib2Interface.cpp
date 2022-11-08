@@ -206,7 +206,8 @@ string CHCSmtLib2Interface::querySolver(string const& _input)
 	if (m_queryResponses.count(inputHash))
 		return m_queryResponses.at(inputHash);
 
-	if ((m_enabledSolvers.smtlib2 || m_enabledSolvers.eld) && m_smtCallback)
+	smtAssert(m_enabledSolvers.smtlib2 || m_enabledSolvers.eld);
+	if (m_smtCallback)
 	{
 		auto result = m_smtCallback(ReadCallback::kindString(ReadCallback::Kind::SMTQuery), _input);
 		if (result.success)

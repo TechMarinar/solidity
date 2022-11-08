@@ -28,7 +28,6 @@
 #include <boost/filesystem/fstream.hpp>
 #include <boost/process.hpp>
 
-using solidity::frontend::ReadCallback;
 using solidity::langutil::InternalCompilerError;
 using solidity::util::errinfo_comment;
 
@@ -52,16 +51,14 @@ ReadCallback::Result SMTSolverCommand::solve(string const& _kind, string const& 
 		auto queryFile = boost::filesystem::ofstream(queryFileName);
 		queryFile << _query;
 
-		auto eldBin = boost::process::search_path("eld");
+		auto eldBin = boost::process::search_path(m_solverCmd);
 
 		if (eldBin.empty())
-			return ReadCallback::Result{false, "Eldarica binary not found."};
+			return ReadCallback::Result{false, m_solverCmd + " binary not found."};
 
 		boost::process::ipstream pipe;
 		boost::process::child eld(
 			eldBin,
-			"-ssol",
-			"-scex",
 			queryFileName,
 			boost::process::std_out > pipe
 		);

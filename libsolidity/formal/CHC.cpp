@@ -75,7 +75,7 @@ CHC::CHC(
 
 void CHC::analyze(SourceUnit const& _source)
 {
-	/// At this point every enabled solver is available.
+	// At this point every enabled solver is available.
 	if (!m_settings.solvers.eld && !m_settings.solvers.smtlib2 && !m_settings.solvers.z3)
 	{
 		m_errorReporter.warning(
@@ -86,6 +86,15 @@ void CHC::analyze(SourceUnit const& _source)
 		);
 		return;
 	}
+
+	if (m_settings.solvers.eld && m_settings.solvers.z3)
+		m_errorReporter.warning(
+			5798_error,
+			SourceLocation(),
+			"Multiple Horn solvers were selected for CHC."
+			" CHC only supports one solver at a time, therefore only z3 will be used."
+			" If you wish to use Eldarica, please enable Eldarica only."
+		);
 
 	if (!shouldAnalyze(_source))
 		return;
@@ -986,19 +995,21 @@ void CHC::resetSourceAnalysis()
 	ArraySlicePredicate::reset();
 	m_blockCounter = 0;
 
-	/// At this point every enabled solver is available.
-	/// If more than one Horn solver is selected we go with z3.
-	/// We still need the ifdef because of Z3CHCInterface.
-#ifdef HAVE_Z3
+	// At this point every enabled solver is available.
+	// If more than one Horn solver is selected we go with z3.
+	// We still need the ifdef because of Z3CHCInterface.
 	if (m_settings.solvers.z3)
 	{
-		/// z3::fixedpoint does not have a reset mechanism, so we need to create another.
+#ifdef HAVE_Z3
+		// z3::fixedpoint does not have a reset mechanism, so we need to create another.
 		m_interface = std::make_unique<Z3CHCInterface>(m_settings.timeout);
 		auto z3Interface = dynamic_cast<Z3CHCInterface const*>(m_interface.get());
 		solAssert(z3Interface, "");
 		m_context.setSolver(z3Interface->z3Interface());
-	}
+#else
+		solAssert(false);
 #endif
+	}
 	if (!m_settings.solvers.z3)
 	{
 		solAssert(m_settings.solvers.smtlib2 || m_settings.solvers.eld);
@@ -1544,10 +1555,10 @@ tuple<CheckResult, smtutil::Expression, CHCSolverInterface::CexGraph> CHC::query
 	{
 	case CheckResult::SATISFIABLE:
 	{
-	/// We still need the ifdef because of Z3CHCInterface.
-#ifdef HAVE_Z3
+	// We still need the ifdef because of Z3CHCInterface.
 		if (m_settings.solvers.z3)
 		{
+#ifdef HAVE_Z3
 			// Even though the problem is SAT, Spacer's pre processing makes counterexamples incomplete.
 			// We now disable those optimizations and check whether we can still solve the problem.
 			auto* spacer = dynamic_cast<Z3CHCInterface*>(m_interface.get());
@@ -1563,8 +1574,10 @@ tuple<CheckResult, smtutil::Expression, CHCSolverInterface::CexGraph> CHC::query
 				cex = std::move(cexNoOpt);
 
 			spacer->setSpacerOptions(true);
-		}
+#else
+			solAssert(false);
 #endif
+		}
 		break;
 	}
 	case CheckResult::UNSATISFIABLE:

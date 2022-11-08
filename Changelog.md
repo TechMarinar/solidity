@@ -10,6 +10,8 @@ Compiler Features:
  * Standard JSON: Add a boolean field `settings.metadata.appendCBOR` that skips CBOR metadata from getting appended at the end of the bytecode.
  * Yul Optimizer: Allow replacing the previously hard-coded cleanup sequence by specifying custom steps after a colon delimiter (``:``) in the sequence string.
  * Language Server: Add basic document hover support.
+ * SMTChecker: Support Eldarica as a Horn solver for the CHC engine when using the CLI option ``--model-checker-solvers eld``. The binary `eld` must be available in the system.
+ * SMTChecker: Make ``z3`` the default solver for the BMC and CHC engines instead of all solvers.
 
 
 Bugfixes:

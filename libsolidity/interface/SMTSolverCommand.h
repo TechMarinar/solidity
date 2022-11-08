@@ -24,6 +24,7 @@
 namespace solidity::frontend
 {
 
+/// SMTSolverCommand wraps an SMT solver called via its binary in the OS.
 class SMTSolverCommand
 {
 public:
@@ -38,6 +39,7 @@ public:
 	}
 
 private:
+	/// The name of the solver's binary.
 	std::string const m_solverCmd;
 };
 

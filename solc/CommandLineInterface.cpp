@@ -694,9 +694,9 @@ void CommandLineInterface::compile()
 {
 	solAssert(CompilerInputModes.count(m_options.input.mode) == 1);
 
-	auto modelChecker = m_options.modelChecker.settings;
+	auto modelCheckerSettings = m_options.modelChecker.settings;
 	auto universalCallback{UniversalCallback(m_fileReader, SMTSolverCommand("eld"))};
-	if (modelChecker.solvers.eld)
+	if (modelCheckerSettings.solvers.eld)
 		m_compiler = make_unique<CompilerStack>(universalCallback.callback());
 	else
 		m_compiler = make_unique<CompilerStack>(m_fileReader.reader());

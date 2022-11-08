@@ -23,6 +23,9 @@
 namespace solidity::frontend
 {
 
+/// UniversalCallback is used to wrap both FileReader and SMTSolverCommand
+/// callbacks in a single callback.  It uses the Kind of the callback to
+/// determine which to call internally.
 class UniversalCallback
 {
 public:
@@ -34,11 +37,10 @@ public:
 	frontend::ReadCallback::Callback callback()
 	{
 		return [this](std::string const& _kind, std::string const& _data) -> ReadCallback::Result {
-			auto solver = m_solver.solver();
 			if (_kind == ReadCallback::kindString(ReadCallback::Kind::ReadFile))
 				return m_fileReader.readFile(_kind, _data);
 			else if (_kind == ReadCallback::kindString(ReadCallback::Kind::SMTQuery))
-				return solver(_kind, _data);
+				return m_solver.solve(_kind, _data);
 			solAssert(false, "Unknown callback kind.");
 		};
 	}

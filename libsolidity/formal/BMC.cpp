@@ -62,7 +62,7 @@ BMC::BMC(
 
 void BMC::analyze(SourceUnit const& _source, map<ASTNode const*, set<VerificationTargetType>, smt::EncodingContext::IdCompare> _solvedTargets)
 {
-	/// At this point every enabled solver is available.
+	// At this point every enabled solver is available.
 	if (!m_settings.solvers.cvc4 && !m_settings.solvers.smtlib2 && !m_settings.solvers.z3)
 	{
 		m_errorReporter.warning(

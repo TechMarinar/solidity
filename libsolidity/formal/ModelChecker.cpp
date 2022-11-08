@@ -145,7 +145,7 @@ SMTSolverChoice ModelChecker::availableSolvers()
 {
 	smtutil::SMTSolverChoice available = smtutil::SMTSolverChoice::SMTLIB2();
 	available.eld = !boost::process::search_path("eld").empty();
-#if defined(HAVE_Z3) || defined(HAVE_Z3_DLOPEN)
+#ifdef HAVE_Z3
 	available.z3 = solidity::smtutil::Z3Interface::available();
 #endif
 #ifdef HAVE_CVC4
