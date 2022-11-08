@@ -52,13 +52,11 @@ ModelChecker::ModelChecker(
 }
 
 // TODO This should be removed for 0.9.0.
-void ModelChecker::enableAllEnginesIfPragmaPresent(vector<shared_ptr<SourceUnit>> const& _sources)
+bool ModelChecker::isPragmaPresent(vector<shared_ptr<SourceUnit>> const& _sources)
 {
-	bool hasPragma = ranges::any_of(_sources, [](auto _source) {
+	return ranges::any_of(_sources, [](auto _source) {
 		return _source && _source->annotation().experimentalFeatures.count(ExperimentalFeature::SMTChecker);
 	});
-	if (hasPragma)
-		m_settings.engine = ModelCheckerEngine::All();
 }
 
 void ModelChecker::checkRequestedSourcesAndContracts(vector<shared_ptr<SourceUnit>> const& _sources)

@@ -58,7 +58,7 @@ public:
 	);
 
 	// TODO This should be removed for 0.9.0.
-	void enableAllEnginesIfPragmaPresent(std::vector<std::shared_ptr<SourceUnit>> const& _sources);
+	static bool isPragmaPresent(std::vector<std::shared_ptr<SourceUnit>> const& _sources);
 
 	/// Generates error messages if the requested sources and contracts
 	/// do not exist.
