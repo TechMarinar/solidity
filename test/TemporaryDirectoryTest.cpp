@@ -16,9 +16,9 @@
 */
 // SPDX-License-Identifier: GPL-3.0
 
-#include <test/TemporaryDirectory.h>
+#include <libsolutil/TemporaryDirectory.h>
 
-#include <test/libsolidity/util/SoltestErrors.h>
+#include <libsolidity/util/SoltestErrors.h>
 
 #include <boost/filesystem.hpp>
 #include <boost/test/unit_test.hpp>
@@ -37,7 +37,7 @@ BOOST_AUTO_TEST_CASE(TemporaryDirectory_should_create_and_delete_a_unique_and_em
 {
 	boost::filesystem::path dirPath;
 	{
-		TemporaryDirectory tempDir("temporary-directory-test");
+		solidity::util::TemporaryDirectory tempDir("temporary-directory-test");
 		dirPath = tempDir.path();
 
 		BOOST_TEST(dirPath.stem().string().find("temporary-directory-test") == 0);
@@ -52,7 +52,7 @@ BOOST_AUTO_TEST_CASE(TemporaryDirectory_should_delete_its_directory_even_if_not_
 {
 	boost::filesystem::path dirPath;
 	{
-		TemporaryDirectory tempDir("temporary-directory-test");
+		solidity::util::TemporaryDirectory tempDir("temporary-directory-test");
 		dirPath = tempDir.path();
 
 		BOOST_TEST(boost::filesystem::is_directory(dirPath));
@@ -70,7 +70,7 @@ BOOST_AUTO_TEST_CASE(TemporaryDirectory_should_create_subdirectories)
 {
 	boost::filesystem::path dirPath;
 	{
-		TemporaryDirectory tempDir({"a", "a/", "a/b/c", "x.y/z"}, "temporary-directory-test");
+		solidity::util::TemporaryDirectory tempDir({"a", "a/", "a/b/c", "x.y/z"}, "temporary-directory-test");
 		dirPath = tempDir.path();
 
 		BOOST_TEST(boost::filesystem::is_directory(dirPath / "a"));
@@ -86,11 +86,11 @@ BOOST_AUTO_TEST_CASE(TemporaryWorkingDirectory_should_change_and_restore_working
 	try
 	{
 		{
-			TemporaryDirectory tempDir("temporary-directory-test");
+			solidity::util::TemporaryDirectory tempDir("temporary-directory-test");
 			soltestAssert(boost::filesystem::equivalent(boost::filesystem::current_path(), originalWorkingDirectory), "");
 			soltestAssert(!boost::filesystem::equivalent(tempDir.path(), originalWorkingDirectory), "");
 
-			TemporaryWorkingDirectory tempWorkDir(tempDir.path());
+			solidity::util::TemporaryWorkingDirectory tempWorkDir(tempDir.path());
 
 			BOOST_TEST(boost::filesystem::equivalent(boost::filesystem::current_path(), tempDir.path()));
 		}

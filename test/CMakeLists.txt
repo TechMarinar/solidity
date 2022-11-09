@@ -13,8 +13,6 @@ set(sources
     InteractiveTests.h
     Metadata.cpp
     Metadata.h
-    TemporaryDirectory.cpp
-    TemporaryDirectory.h
     TemporaryDirectoryTest.cpp
     TestCase.cpp
     TestCase.h

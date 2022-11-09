@@ -21,6 +21,8 @@
 
 #include <libsolutil/CommonIO.h>
 #include <libsolutil/Exceptions.h>
+#include <libsolutil/Keccak256.h>
+#include <libsolutil/TemporaryDirectory.h>
 
 #include <boost/algorithm/string/join.hpp>
 #include <boost/algorithm/string/predicate.hpp>
@@ -45,8 +47,9 @@ ReadCallback::Result SMTSolverCommand::solve(string const& _kind, string const& 
 		if (_kind != ReadCallback::kindString(ReadCallback::Kind::SMTQuery))
 			solAssert(false, "SMTQuery callback used as callback kind " + _kind);
 
-		auto tempDir = boost::filesystem::temp_directory_path();
-		auto queryFileName = tempDir / "query.smt2";
+		auto tempDir = solidity::util::TemporaryDirectory("smt");
+		util::h256 queryHash = util::keccak256(_query);
+		auto queryFileName = tempDir.path() / ("query_" + queryHash.hex() + ".smt2");
 
 		auto queryFile = boost::filesystem::ofstream(queryFileName);
 		queryFile << _query;
